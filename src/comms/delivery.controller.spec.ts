@@ -22,56 +22,25 @@ describe('DeliveryController', () => {
   });
 
   describe('getUserDeliveryComms', () => {
-    it('should call getUserDeliveryComms() and generateUserDeliveryComms() with the given userId', () => {
-      const mockCommsData = {
-        title: 'Your next delivery for Betsy',
-        message:
-          "Hey Cordell! In two days' time, we'll be charging you for your next order for Betsy's fresh food.",
-        totalPrice: 69.0,
-        freeGift: false,
-      };
+    const validId = '618f4ed6-1c5b-4993-a149-f64700bf31dd';
+    const nonExistentId = '00000000-0000-0000-0000-000000000000';
+    const invalidId = '!@#';
 
+    const mockCommsData = {
+      title: 'Your next delivery for Betsy',
+      message:
+        "Hey Cordell! In two days' time, we'll be charging you for your next order for Betsy's fresh food.",
+      totalPrice: 69.0,
+      freeGift: false,
+    };
+
+    it('should return 200 OK and an object with the correct properties when called with a valid userId', () => {
       deliveryService.generateUserDeliveryComms.mockReturnValue(mockCommsData);
-
-      deliveryController.getUserDeliveryComms(
-        '618f4ed6-1c5b-4993-a149-f64700bf31dd',
-      );
+      const result = deliveryController.getUserDeliveryComms(validId);
 
       expect(deliveryService.generateUserDeliveryComms).toHaveBeenCalledWith(
-        '618f4ed6-1c5b-4993-a149-f64700bf31dd',
+        validId,
       );
-    });
-
-    it('should return a 404 error when userId is valid but does not exist', () => {
-      deliveryService.generateUserDeliveryComms.mockReturnValue(undefined);
-      expect(() =>
-        deliveryController.getUserDeliveryComms(
-          '00000000-0000-0000-0000-000000000000',
-        ),
-      ).toThrow(NotFoundException);
-    });
-
-    it('should return a 400 error when userId is an invalid format', () => {
-      expect(() => deliveryController.getUserDeliveryComms('!@#')).toThrow(
-        BadRequestException,
-      );
-    });
-
-    it('should return an object with the correct properties', () => {
-      const mockCommsData = {
-        title: 'Your next delivery for Betsy',
-        message:
-          "Hey Cordell! In two days' time, we'll be charging you for your next order for Betsy's fresh food.",
-        totalPrice: 69.0,
-        freeGift: false,
-      };
-
-      deliveryService.generateUserDeliveryComms.mockReturnValue(mockCommsData);
-
-      const result = deliveryController.getUserDeliveryComms(
-        '618f4ed6-1c5b-4993-a149-f64700bf31dd',
-      );
-
       expect(result).toMatchObject({
         title: expect.any(String),
         message: expect.any(String),
@@ -80,23 +49,24 @@ describe('DeliveryController', () => {
       });
     });
 
-    it('should call getUserDeliveryComms() and return the correct object for said user', () => {
-      const mockCommsData = {
-        title: 'Your next delivery for Betsy',
-        message:
-          "Hey Cordell! In two days' time, we'll be charging you for your next order for Betsy's fresh food.",
-        totalPrice: 69.0,
-        freeGift: false,
-      };
+    it('should return 404 Not Found when userId is valid but does not exist', () => {
+      deliveryService.generateUserDeliveryComms.mockReturnValue(undefined);
+      expect(() =>
+        deliveryController.getUserDeliveryComms(nonExistentId),
+      ).toThrow(NotFoundException);
+    });
 
-      // Mock function return value
+    it('should return 400 Bad Request when userId is an invalid format', () => {
+      expect(() => deliveryController.getUserDeliveryComms(invalidId)).toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should return 200 OK with the correctly populated object for a given user', () => {
       deliveryService.generateUserDeliveryComms.mockReturnValue(mockCommsData);
+      const result = deliveryController.getUserDeliveryComms(validId);
 
-      expect(
-        deliveryController.getUserDeliveryComms(
-          '618f4ed6-1c5b-4993-a149-f64700bf31dd',
-        ),
-      ).toEqual(mockCommsData);
+      expect(result).toEqual(mockCommsData);
     });
   });
 });
