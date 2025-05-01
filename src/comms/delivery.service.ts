@@ -2,9 +2,24 @@ import { Injectable } from '@nestjs/common';
 import * as path from 'path';
 import * as fs from 'fs';
 
+interface Cat {
+  name: string;
+  subscriptionActive: boolean;
+  breed: string;
+  pouchSize: string;
+}
+
+interface User {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  cats: Cat[];
+}
+
 @Injectable()
 export class DeliveryService {
-  private data: any[];
+  private data: User[];
 
   constructor() {
     const filePath = path.resolve(__dirname, '../../data.json');
@@ -12,18 +27,18 @@ export class DeliveryService {
   }
 
   // Gets the user data for a given userId
-  getUserDataById(userId: string) {
-    return this.data.find((user: any) => user.id === userId);
+  getUserDataById(userId: string): User | undefined {
+    return this.data.find((user) => user.id === userId);
   }
 
   // Returns a string of cat names with an active subscription, formatted correctly
-  formatActiveCatNames(userId: string) {
+  formatActiveCatNames(userId: string): string | null {
     const userData = this.getUserDataById(userId);
     if (!userData) return null;
 
     const activeCatNames = userData.cats
-      .filter((cat: any) => cat.subscriptionActive) // Remove inactive cats
-      .map((cat: any) => cat.name); // Extract names
+      .filter((cat) => cat.subscriptionActive) // Remove inactive cats
+      .map((cat) => cat.name); // Extract names
 
     if (activeCatNames.length === 1) {
       return activeCatNames[0];
@@ -36,7 +51,7 @@ export class DeliveryService {
   }
 
   // Returns the title of the delivery comms
-  createTitle(userId: string) {
+  createTitle(userId: string): string | null {
     const formattedActiveCatNames = this.formatActiveCatNames(userId);
     if (!formattedActiveCatNames) return null;
 
@@ -44,7 +59,7 @@ export class DeliveryService {
   }
 
   // Returns the message for the delivery comms
-  createMessage(userId: string) {
+  createMessage(userId: string): string | null {
     const userData = this.getUserDataById(userId);
     if (!userData) return null;
 
@@ -55,13 +70,13 @@ export class DeliveryService {
   }
 
   // Calculates the total price of the pouches for a user's active cats
-  calculateTotalPrice(userId: string) {
+  calculateTotalPrice(userId: string): number {
     const userData = this.getUserDataById(userId);
     if (!userData) return 0;
 
     const activeCatPouches = userData.cats
-      .filter((cat: any) => cat.subscriptionActive) // Remove inactive cats
-      .map((cat: any) => cat.pouchSize); // Extract pouch sizes
+      .filter((cat) => cat.subscriptionActive) // Remove inactive cats
+      .map((cat) => cat.pouchSize); // Extract pouch sizes
 
     if (activeCatPouches.length === 0) return 0;
 
@@ -76,13 +91,12 @@ export class DeliveryService {
 
     // Calculate total price by summing pouch size values
     return activeCatPouches.reduce(
-      (total: number, pouchSize: string) =>
-        total + (pouchPrices[pouchSize] || 0),
+      (total, pouchSize) => total + (pouchPrices[pouchSize] || 0),
       0,
     );
   }
 
-  isEligibleForFreeGift(userId: string) {
+  isEligibleForFreeGift(userId: string): boolean {
     const totalPrice = this.calculateTotalPrice(userId);
 
     // Return true if >120 or false if <120
