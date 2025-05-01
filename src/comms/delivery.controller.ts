@@ -11,14 +11,16 @@ import { DeliveryService } from './delivery.service';
 export class DeliveryController {
   constructor(private readonly deliveryService: DeliveryService) {}
 
+  // Helper function to validate userId format
+  private isValidUserId(userId: string): boolean {
+    const userIdRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+    return userIdRegex.test(userId);
+  }
+
   @Get(':userId')
   getUserDeliveryComms(@Param('userId') userId: string) {
-    // Use regex to test the userId is valid
-    if (
-      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(
-        userId,
-      )
-    ) {
+    if (!this.isValidUserId(userId)) {
       throw new BadRequestException(`The user ID ${userId} is invalid`);
     }
 
