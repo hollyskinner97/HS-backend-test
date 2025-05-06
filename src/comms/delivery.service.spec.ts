@@ -1,4 +1,6 @@
+import { Test, TestingModule } from '@nestjs/testing';
 import { DeliveryService } from './delivery.service';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 describe('DeliveryService', () => {
   let deliveryService: DeliveryService;
@@ -10,8 +12,12 @@ describe('DeliveryService', () => {
   const noCatsId = '00000000-0000-0000-0000-000000000000';
   const invalidId = '!@#';
 
-  beforeEach(() => {
-    deliveryService = new DeliveryService();
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [DeliveryService],
+    }).compile();
+
+    deliveryService = module.get<DeliveryService>(DeliveryService);
   });
 
   describe('getDataByUserId', () => {
@@ -34,120 +40,82 @@ describe('DeliveryService', () => {
       expect(result).toEqual(expectedUserData);
     });
 
-    it('should return undefined when given an invalid userId', () => {
-      const result = deliveryService.getUserDataById(invalidId);
-      expect(result).toBeUndefined();
+    it('should throw NotFoundException when given an unknown userId', () => {
+      expect(() => deliveryService.getUserDataById(noCatsId)).toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should throw BadRequestException when given an invalid userId', () => {
+      expect(() => deliveryService.getUserDataById(invalidId)).toThrow(
+        BadRequestException,
+      );
     });
   });
 
   describe('formatActiveCatNames', () => {
-    it('should return null when given an user with no active cats', () => {
-      const result = deliveryService.formatActiveCatNames(noCatsId);
-      expect(result).toBe(null);
-    });
-
-    it('should return the correct string for a single active cat', () => {
-      const result = deliveryService.formatActiveCatNames(validId);
-      expect(result).toBe('Betsy');
-    });
-
-    it('should return the correct string for 2 active cats', () => {
-      const result = deliveryService.formatActiveCatNames(twoCatsId);
-      expect(result).toBe('Willie and Chaz');
-    });
-
-    it('should return the correct string for 3 or more active cats', () => {
-      const result = deliveryService.formatActiveCatNames(threeCatsId);
-      expect(result).toBe('Cristina, Mariah and Rebekah');
-    });
-
-    it('should return the correct string for a user with both active and inactive cats', () => {
-      const result = deliveryService.formatActiveCatNames(mixedCatsId);
-      expect(result).toBe('Destiny and Alexandre');
+    it('should format cat names correctly based on the number of active cats', () => {
+      expect(deliveryService.formatActiveCatNames(validId)).toBe('Betsy');
+      expect(deliveryService.formatActiveCatNames(twoCatsId)).toBe(
+        'Willie and Chaz',
+      );
+      expect(deliveryService.formatActiveCatNames(threeCatsId)).toBe(
+        'Cristina, Mariah and Rebekah',
+      );
+      expect(deliveryService.formatActiveCatNames(mixedCatsId)).toBe(
+        'Destiny and Alexandre',
+      );
     });
   });
 
   describe('createTitle', () => {
-    it('should return null when given an user with no cats', () => {
-      const result = deliveryService.createTitle(noCatsId);
-      expect(result).toBe(null);
-    });
-
     it('should return the correct title for a given user', () => {
-      const result = deliveryService.createTitle(validId);
-      expect(result).toBe('Your next delivery for Betsy');
-
-      const result2 = deliveryService.createTitle(twoCatsId);
-      expect(result2).toBe('Your next delivery for Willie and Chaz');
-
-      const result3 = deliveryService.createTitle(threeCatsId);
-      expect(result3).toBe(
+      expect(deliveryService.createTitle(validId)).toBe(
+        'Your next delivery for Betsy',
+      );
+      expect(deliveryService.createTitle(twoCatsId)).toBe(
+        'Your next delivery for Willie and Chaz',
+      );
+      expect(deliveryService.createTitle(threeCatsId)).toBe(
         'Your next delivery for Cristina, Mariah and Rebekah',
       );
     });
   });
 
   describe('createMessage', () => {
-    it('should return null when given an user with no cats', () => {
-      const result = deliveryService.createMessage(noCatsId);
-      expect(result).toBe(null);
-    });
-
     it('should return the correct title for a given user', () => {
-      const result = deliveryService.createMessage(validId);
-      expect(result).toBe(
+      expect(deliveryService.createMessage(validId)).toBe(
         "Hey Cordell! In two days' time, we'll be charging you for your next order for Betsy's fresh food.",
       );
-
-      const result2 = deliveryService.createMessage(twoCatsId);
-      expect(result2).toBe(
+      expect(deliveryService.createMessage(twoCatsId)).toBe(
         "Hey Herman! In two days' time, we'll be charging you for your next order for Willie and Chaz's fresh food.",
       );
-
-      const result3 = deliveryService.createMessage(threeCatsId);
-      expect(result3).toBe(
+      expect(deliveryService.createMessage(threeCatsId)).toBe(
         "Hey Santiago! In two days' time, we'll be charging you for your next order for Cristina, Mariah and Rebekah's fresh food.",
       );
     });
   });
 
   describe('calculateTotalPrice', () => {
-    it('should return 0 when given an user with no cats', () => {
-      const result = deliveryService.calculateTotalPrice(noCatsId);
-      expect(result).toBe(0);
-    });
-
     it('should return the correct total for a given user', () => {
-      const result = deliveryService.calculateTotalPrice(validId);
-      expect(result).toBe(69.0);
-
-      const result2 = deliveryService.calculateTotalPrice(twoCatsId);
-      expect(result2).toBe(125.5);
-
-      const result3 = deliveryService.calculateTotalPrice(threeCatsId);
-      expect(result3).toBe(197.5);
+      expect(deliveryService.calculateTotalPrice(validId)).toBe(69.0);
+      expect(deliveryService.calculateTotalPrice(twoCatsId)).toBe(125.5);
+      expect(deliveryService.calculateTotalPrice(threeCatsId)).toBe(197.5);
     });
   });
 
   describe('isEligibleForFreeGift', () => {
-    it('should return false when given an user with no cats', () => {
-      const result = deliveryService.isEligibleForFreeGift(noCatsId);
-      expect(result).toBe(false);
-    });
-
     it('should return false when the order total is <120', () => {
-      const result = deliveryService.isEligibleForFreeGift(validId);
-      expect(result).toBe(false);
+      expect(deliveryService.isEligibleForFreeGift(validId)).toBe(false);
     });
 
     it('should return true when the order total is >120', () => {
-      const result = deliveryService.isEligibleForFreeGift(twoCatsId);
-      expect(result).toBe(true);
+      expect(deliveryService.isEligibleForFreeGift(twoCatsId)).toBe(true);
     });
   });
 
   describe('generateUserDeliveryComms', () => {
-    it('should return an object which combines the results of the helper functions', () => {
+    it('should correctly combine details into a formatted return object', () => {
       const result = deliveryService.generateUserDeliveryComms(twoCatsId);
       expect(result).toEqual({
         title: 'Your next delivery for Willie and Chaz',
