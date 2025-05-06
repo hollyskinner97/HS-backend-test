@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -26,45 +30,56 @@ export class DeliveryService {
     this.data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
   }
 
+  // Helper function to validate userId format
+  private isValidUserId(userId: string) {
+    const userIdRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+    return userIdRegex.test(userId);
+  }
+
   // Gets the user data for a given userId
-  getUserDataById(userId: string): User | undefined {
-    return this.data.find((user) => user.id === userId);
+  getUserDataById(userId: string): User {
+    if (!this.isValidUserId(userId)) {
+      throw new BadRequestException(`The userId ${userId} is invalid.`);
+    }
+
+    const user = this.data.find((user) => user.id === userId);
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found.`);
+    }
+    return user;
   }
 
   // Returns a string of cat names with an active subscription, formatted correctly
-  formatActiveCatNames(userId: string): string | null {
+  formatActiveCatNames(userId: string): string {
     const userData = this.getUserDataById(userId);
-    if (!userData) return null;
 
     const activeCatNames = userData.cats
       .filter((cat) => cat.subscriptionActive) // Remove inactive cats
       .map((cat) => cat.name); // Extract names
 
-    if (activeCatNames.length === 1) {
-      return activeCatNames[0];
-    } else if (activeCatNames.length === 2) {
-      return `${activeCatNames[0]} and ${activeCatNames[1]}`;
-    } else {
-      const lastCat = activeCatNames.pop();
-      return `${activeCatNames.join(', ')} and ${lastCat}`;
+    // Not the case in our data but could have user with no active cats
+    if (!activeCatNames || activeCatNames.length === 0) {
+      return 'No active cats';
     }
+
+    return activeCatNames.length === 1
+      ? activeCatNames[0]
+      : `${activeCatNames.slice(0, -1).join(', ')} and ${activeCatNames.at(-1)}`;
   }
 
   // Returns the title of the delivery comms
-  createTitle(userId: string): string | null {
+  createTitle(userId: string): string {
     const formattedActiveCatNames = this.formatActiveCatNames(userId);
-    if (!formattedActiveCatNames) return null;
 
     return `Your next delivery for ${formattedActiveCatNames}`;
   }
 
   // Returns the message for the delivery comms
-  createMessage(userId: string): string | null {
+  createMessage(userId: string): string {
     const userData = this.getUserDataById(userId);
-    if (!userData) return null;
 
     const formattedActiveCatNames = this.formatActiveCatNames(userId);
-    if (!formattedActiveCatNames) return null;
 
     return `Hey ${userData.firstName}! In two days' time, we'll be charging you for your next order for ${formattedActiveCatNames}'s fresh food.`;
   }
@@ -72,13 +87,9 @@ export class DeliveryService {
   // Calculates the total price of the pouches for a user's active cats
   calculateTotalPrice(userId: string): number {
     const userData = this.getUserDataById(userId);
-    if (!userData) return 0;
-
     const activeCatPouches = userData.cats
       .filter((cat) => cat.subscriptionActive) // Remove inactive cats
       .map((cat) => cat.pouchSize); // Extract pouch sizes
-
-    if (activeCatPouches.length === 0) return 0;
 
     const pouchPrices: Record<string, number> = {
       A: 55.5,
@@ -105,7 +116,6 @@ export class DeliveryService {
 
   generateUserDeliveryComms(userId: string) {
     const userData = this.getUserDataById(userId);
-    if (!userData) return undefined;
 
     // Combine the results of the helper functions into 1 object
     return {
