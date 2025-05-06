@@ -8,11 +8,14 @@ describe('DeliveryController', () => {
   let deliveryService: jest.Mocked<DeliveryService>;
 
   beforeEach(async () => {
-    const mockDeliveryService = { generateUserDeliveryComms: jest.fn() };
-
     const module: TestingModule = await Test.createTestingModule({
       controllers: [DeliveryController],
-      providers: [{ provide: DeliveryService, useValue: mockDeliveryService }],
+      providers: [
+        {
+          provide: DeliveryService,
+          useValue: { generateUserDeliveryComms: jest.fn() },
+        },
+      ],
     }).compile();
 
     deliveryController = module.get<DeliveryController>(DeliveryController);
@@ -50,13 +53,18 @@ describe('DeliveryController', () => {
     });
 
     it('should return 404 Not Found when userId is valid but does not exist', () => {
-      deliveryService.generateUserDeliveryComms.mockReturnValue(undefined);
+      deliveryService.generateUserDeliveryComms.mockImplementation(() => {
+        throw new NotFoundException();
+      });
       expect(() =>
         deliveryController.getUserDeliveryComms(nonExistentId),
       ).toThrow(NotFoundException);
     });
 
     it('should return 400 Bad Request when userId is an invalid format', () => {
+      deliveryService.generateUserDeliveryComms.mockImplementation(() => {
+        throw new BadRequestException();
+      });
       expect(() => deliveryController.getUserDeliveryComms(invalidId)).toThrow(
         BadRequestException,
       );
